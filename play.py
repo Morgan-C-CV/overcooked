@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     params['env_id'] = "default_env_id"
     params['n_agent'] = 1
-    params['obs_radius'] = 3
+    params['obs_radius'] = 5
 
     player = Player(**params)
     player.run()

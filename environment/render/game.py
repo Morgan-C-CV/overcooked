@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 from .utils import *
@@ -55,6 +56,11 @@ class Game:
             self._running = False
 
     def on_render(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        
         self.screen.fill(Color.FLOOR)
         for x in range(self.env.xlen):
             for y in range(self.env.ylen):
@@ -128,7 +134,7 @@ class Game:
                                 else:
                                     self.draw(agent.holding.name, self.holding_size, self.holding_location((y, x)))
         pygame.display.flip()
-        pygame.display.update()
+        pygame.time.delay(10)
 
         img_int = pygame.PixelArray(self.screen)
         img_rgb = np.zeros([img_int.shape[1], img_int.shape[0], 3], dtype=np.uint8)
