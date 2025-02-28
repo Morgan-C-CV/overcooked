@@ -330,6 +330,14 @@ class Overcooked_multi(MultiAgentEnv):
 
         self.itemList = [item for sublist in self.itemDic.values() for item in sublist]
         self.agent = self.itemDic["agent"]
+        
+        # 添加以下属性
+        self.knife = self.itemDic["knife"]
+        self.tomato = self.itemDic["tomato"]
+        self.lettuce = self.itemDic["lettuce"]
+        self.onion = self.itemDic["onion"]
+        self.plate = self.itemDic["plate"]
+        self.delivery = self.itemDic["delivery"]
 
     def _initObs(self):
         """

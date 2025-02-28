@@ -134,5 +134,9 @@ if __name__ == '__main__':
 
     params = vars(parser.parse_args())
 
+    params['env_id'] = "default_env_id"
+    params['n_agent'] = 1
+    params['obs_radius'] = 3
+
     player = Player(**params)
     player.run()
