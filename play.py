@@ -12,7 +12,6 @@ TASKLIST = [
     "lettuce-onion salad", "lettuce-onion-tomato salad"
 ]
 
-
 class Player:
     ACTION_MAPPING = {
         "w": 3,
@@ -117,26 +116,23 @@ class Player:
 
     def save_data(self, data):
         columns = data[0]
-        # Extract data
         data = data[1:]
-        # Create DataFrame
         df = pd.DataFrame(data, columns=columns)
-        # Save to CSV
         csv_filename = "output.csv"
         df.to_csv(csv_filename, index=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--grid_dim', type=int, nargs=2, default=[5, 5], help='Grid world size')
+    parser.add_argument('--grid_dim', type=int, nargs=5, default=[7, 7], help='Grid world size')
     parser.add_argument('--task', type=int, default=6, help='The recipe agent cooks')
-    parser.add_argument('--map_type', type=str, default="A", help='The type of map')
+    parser.add_argument('--map_type', type=str, default="C", help='The type of map')
     parser.add_argument('--mode', type=str, default="vector", help='The type of observation (vector/image)')
     parser.add_argument('--debug', type=bool, default=True, help='Whether to print debug information and render')
 
     params = vars(parser.parse_args())
 
     params['env_id'] = "default_env_id"
-    params['n_agent'] = 1
+    params['n_agent'] = 2
     params['obs_radius'] = 5
 
     player = Player(**params)
