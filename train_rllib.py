@@ -37,7 +37,6 @@ def define_env():
     ]
     
     def env_creator(_):
-        # 每次创建环境时随机选择任务和地图大小
         import random
         env_params = {
             "grid_dim": random.choice(possible_grid_dims),
@@ -131,7 +130,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 400}, # stop after 500 iterations (fairly arbitrary, and many more options if you look at the docs)
+            stop={"training_iteration": 400}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
             checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2), # save a checkpoint every 10 iterations
         )
     )
