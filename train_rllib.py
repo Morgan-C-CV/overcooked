@@ -20,18 +20,38 @@ def define_env():
         "wrong delivery": -50,
         "step penalty": -1.,
     }
-    env_params = {
-        "grid_dim": [5, 5],
-        "task": "tomato salad",
-        "rewardList": reward_config,
-        "map_type": "A",
-        "mode": "vector",
-        "debug": False,
-    }
+
+    possible_tasks = [
+        "tomato salad", 
+        "lettuce salad", 
+        "onion salad",
+        "lettuce-tomato salad",
+        "onion-tomato salad",
+        "lettuce-onion salad",
+        "lettuce-onion-tomato salad"
+    ]
+    possible_grid_dims = [
+        [5, 5],
+        [7, 7],
+        [9, 9]
+    ]
+    
+    def env_creator(_):
+        # 每次创建环境时随机选择任务和地图大小
+        import random
+        env_params = {
+            "grid_dim": random.choice(possible_grid_dims),
+            "task": random.choice(possible_tasks),
+            "rewardList": reward_config,
+            "map_type": "A",
+            "mode": "vector",
+            "debug": False,
+        }
+        return Overcooked_multi(**env_params)
 
     register_env(
         "Overcooked",
-        lambda _: Overcooked_multi(**env_params),
+        env_creator,
     )
 
 def define_agents(args):
@@ -68,7 +88,7 @@ def define_training(human_policy, policies_to_train):
         .env_runners( # define how many envs to run in parallel and resources per env
             num_envs_per_env_runner=1,
             num_cpus_per_env_runner=1,
-            num_gpus_per_env_runner=0
+            num_gpus_per_env_runner=0.5
         )
         .multi_agent(
             policies={"ai", "human"}, #mapping from agent name in env to policy name. Our mapping is ai->ai, human->human
@@ -95,12 +115,13 @@ def define_training(human_policy, policies_to_train):
             num_epochs=10,
             minibatch_size=64,
         )
+        .framework("torch")
     )
     return config
 
 
 def train(args, config):
-    ray.init()
+    ray.init(num_gpus=1)
     current_dir = os.getcwd()
     storage_path = os.path.join(current_dir, args.save_dir) # save the results in the runs folder
     experiment_name = f"{args.name}_{args.rl_module}_{int(time.time() * 1000)}" # add a timestamp to the name to make it unique
@@ -110,7 +131,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 200}, # stop after 200 iterations (fairly arbitrary, and many more options if you look at the docs)
+            stop={"training_iteration": 400}, # stop after 500 iterations (fairly arbitrary, and many more options if you look at the docs)
             checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2), # save a checkpoint every 10 iterations
         )
     )
