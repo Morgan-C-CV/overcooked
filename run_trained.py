@@ -19,15 +19,15 @@ from ray.rllib.utils.numpy import convert_to_numpy, softmax
 import numpy as np
 
 reward_config = {
-    "metatask failed": 0,
-    "goodtask finished": 5,
-    "subtask finished": 10,
+    "metatask failed": -1,
+    "goodtask finished": 12,
+    "subtask finished": 25,
     "correct delivery": 200,
     "wrong delivery": -50,
-    "step penalty": -1.,
+    "step penalty": -0.5,
 }
 env_params = {
-    "grid_dim": [5, 5],
+    "grid_dim": [7, 7],
     "task": "tomato salad",
     "rewardList": reward_config,
     "map_type": "A",

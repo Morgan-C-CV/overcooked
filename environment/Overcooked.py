@@ -15,15 +15,17 @@ TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato sala
 
 class Overcooked_multi(MultiAgentEnv):
 
-    def __init__(self, grid_dim, task, rewardList, map_type="A", mode="vector", debug=False):
+    def __init__(self, grid_dim, task, rewardList, map_type="A", mode="vector", debug=False, possible_tasks=None, max_steps=400):
         super().__init__()
         self.step_count = 0
+        self.max_steps = max_steps
         self.agents = self.possible_agents = ["human", "ai"]
         self.n_agent = len(self.agents)
-        self.obs_radius = 0 # full observability
+        self.obs_radius = 0  # full observability
         self.xlen, self.ylen = grid_dim
 
-        self.task = task #TODO: change to task index and random sampling in reset.
+        self.possible_tasks = possible_tasks or TASKLIST
+        self.task = task
         self.rewardList = rewardList
         self.mapType = map_type
         self.debug = debug
@@ -344,7 +346,7 @@ class Overcooked_multi(MultiAgentEnv):
         Initialize the observations for the agents.
 
         This function creates an observation list by normalizing the positions of items
-        and appending additional information if the item is of type Food. It then extends
+        and appends additional information if the item is of type Food. It then extends
         the observation list with one-hot encoded task information. Finally, it assigns
         the observation list to each agent and returns a list of observations for all agents.
 
@@ -367,7 +369,7 @@ class Overcooked_multi(MultiAgentEnv):
         Get the global state of the environment.
 
         This function creates a global state representation by normalizing the positions of items
-        and appending additional information based on the item type. It includes the positions of
+        and appends additional information based on the item type. It includes the positions of
         all items, their chopped status if they are food, whether plates contain food, and whether
         knives or agents are holding items. The state is extended with one-hot encoded task information.
 
@@ -656,17 +658,22 @@ class Overcooked_multi(MultiAgentEnv):
         obs : list
             observation for each agent.
         """
-
+    
+        import random
+    
         self.map = copy.deepcopy(self.initMap)
         self._createItems()
         self.step_count = 0
 
-        # Reset task completion status
-        counter = Counter(self.task)
-        self.taskCompletionStatus = [counter[element] if element in counter else 0 for element in TASKLIST]
-
+        if self.possible_tasks:
+            self.task = random.choice(self.possible_tasks)
+            print(f"\nTask now: {self.task}")
+            self.oneHotTask = [1 if t in self.task else 0 for t in TASKLIST]
+            counter = Counter(self.task)
+            self.taskCompletionStatus = [counter[element] if element in counter else 0 for element in TASKLIST]
+    
         self._initObs()
-
+    
         return self._get_obs(), {}
     
     def step(self, action):

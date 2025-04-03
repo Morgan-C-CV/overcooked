@@ -13,15 +13,15 @@ import os
 
 def define_env():
     reward_config = {
-        "metatask failed": 0,
-        "goodtask finished": 5,
-        "subtask finished": 10,
+        "metatask failed": -1,
+        "goodtask finished": 12,
+        "subtask finished": 25,
         "correct delivery": 200,
         "wrong delivery": -50,
-        "step penalty": -1.,
+        "step penalty": -0.5,
     }
 
-    possible_tasks = [
+    tasks = [
         "tomato salad", 
         "lettuce salad", 
         "onion salad",
@@ -30,21 +30,17 @@ def define_env():
         "lettuce-onion salad",
         "lettuce-onion-tomato salad"
     ]
-    possible_grid_dims = [
-        [5, 5],
-        [7, 7],
-        [9, 9]
-    ]
     
     def env_creator(_):
-        import random
         env_params = {
-            "grid_dim": random.choice(possible_grid_dims),
-            "task": random.choice(possible_tasks),
+            "grid_dim": [7, 7],
+            "task": tasks[0],
             "rewardList": reward_config,
             "map_type": "A",
             "mode": "vector",
             "debug": False,
+            "possible_tasks": tasks,
+            "max_steps": 400,
         }
         return Overcooked_multi(**env_params)
 
@@ -104,7 +100,7 @@ def define_training(human_policy, policies_to_train):
             ),
         )
         .training( # these are hyper paramters for PPO
-            lr=1e-3,
+            lr=5e-4,
             lambda_=0.98,
             gamma=0.99,
             clip_param=0.05,
@@ -112,7 +108,8 @@ def define_training(human_policy, policies_to_train):
             vf_loss_coeff=0.1,
             grad_clip=0.1,
             num_epochs=10,
-            minibatch_size=64,
+            minibatch_size=128,
+            train_batch_size=3000,
         )
         .framework("torch")
     )
@@ -130,7 +127,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 400}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
+            stop={"training_iteration": 600}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
             checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2), # save a checkpoint every 10 iterations
         )
     )
