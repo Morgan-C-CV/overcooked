@@ -14,11 +14,11 @@ import os
 def define_env():
     reward_config = {
         "metatask failed": -1,
-        "goodtask finished": 12,
+        "goodtask finished": 15,
         "subtask finished": 25,
         "correct delivery": 200,
         "wrong delivery": -50,
-        "step penalty": -0.5,
+        "step penalty": -1.0,
     }
 
     tasks = [
@@ -33,7 +33,7 @@ def define_env():
     
     def env_creator(_):
         env_params = {
-            "grid_dim": [7, 7],
+            "grid_dim": [5, 5],
             "task": tasks[0],
             "rewardList": reward_config,
             "map_type": "A",
@@ -127,7 +127,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 600}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
+            stop={"training_iteration": 400}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
             checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2), # save a checkpoint every 10 iterations
         )
     )
