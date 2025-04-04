@@ -123,9 +123,9 @@ class Player:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--grid_dim', type=int, nargs=5, default=[7, 7], help='Grid world size')
+    parser.add_argument('--grid_dim', type=int, nargs=5, default=[5, 5], help='Grid world size')
     parser.add_argument('--task', type=int, default=6, help='The recipe agent cooks')
-    parser.add_argument('--map_type', type=str, default="C", help='The type of map')
+    parser.add_argument('--map_type', type=str, default="A", help='The type of map')
     parser.add_argument('--mode', type=str, default="vector", help='The type of observation (vector/image)')
     parser.add_argument('--debug', type=bool, default=True, help='Whether to print debug information and render')
 

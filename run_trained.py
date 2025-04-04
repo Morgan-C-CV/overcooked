@@ -27,7 +27,7 @@ reward_config = {
     "step penalty": -0.5,
 }
 env_params = {
-    "grid_dim": [7, 7],
+    "grid_dim": [5, 5],
     "task": "tomato salad",
     "rewardList": reward_config,
     "map_type": "A",
@@ -95,6 +95,7 @@ def main(args):
         time.sleep(0.1)
 
         if terminateds['__all__']:
+            print(f"Reward: {rewards}")
             break
 
 if __name__ == "__main__":

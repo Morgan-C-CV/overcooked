@@ -96,16 +96,16 @@ class Overcooked_multi(MultiAgentEnv):
     def _map_5x5(self):
         if self.n_agent == 2:
             if self.mapType == "A":
-                map =  [[1, 1, 1, 1, 1],
+                map =  [[1, 4, 1, 1, 1],
                         [6, 0, 0, 2, 1],
                         [3, 0, 0, 0, 1],
-                        [7, 0, 0, 2, 1],
+                        [7, 0, 0, 2, 8],
                         [1, 5, 1, 1, 1]] 
             elif self.mapType == "B":
                 map =  [[1, 8, 1, 1, 1],
                         [6, 2, 1, 0, 1],
                         [3, 0, 5, 2, 6],
-                        [7, 0, 5, 0, 1],
+                        [7, 0, 5, 0, 4],
                         [1, 4, 1, 1, 1]] 
             elif self.mapType == "C":
                 map =  [[1, 1, 1, 5, 1],
