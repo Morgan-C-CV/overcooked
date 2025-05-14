@@ -24,6 +24,7 @@ class Player:
     REWARD_LIST = {
         "subtask finished": 10,
         "correct delivery": 200,
+        "goodtask finished": 10,
         "wrong delivery": -5,
         "step penalty": -0.1
     }

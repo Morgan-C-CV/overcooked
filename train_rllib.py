@@ -86,7 +86,7 @@ def define_training(human_policy, policies_to_train):
             num_gpus_per_env_runner=0.5
         )
         .multi_agent(
-            policies={"ai", "human"}, #mapping from agent name in env to policy name. Our mapping is ai->ai, human->human
+            policies={"ai", "human"},
             policy_mapping_fn=lambda aid, *a, **kw: aid,
             policies_to_train=policies_to_train
 
@@ -99,7 +99,7 @@ def define_training(human_policy, policies_to_train):
                 }
             ),
         )
-        .training( # these are hyper paramters for PPO
+        .training(
             lr=5e-4,
             lambda_=0.98,
             gamma=0.99,
@@ -120,15 +120,15 @@ def train(args, config):
     ray.init(num_gpus=1)
     current_dir = os.getcwd()
     storage_path = os.path.join(current_dir, args.save_dir) # save the results in the runs folder
-    experiment_name = f"{args.name}_{args.rl_module}_{int(time.time() * 1000)}" # add a timestamp to the name to make it unique
+    experiment_name = f"{args.name}_{args.rl_module}_{int(time.time() * 1000)}"
     tuner = tune.Tuner(
         "PPO",
         param_space=config,
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 400}, # stop after 400 iterations (fairly arbitrary, and many more options if you look at the docs)
-            checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2), # save a checkpoint every 10 iterations
+            stop={"training_iteration": 600},
+            checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2),
         )
     )
     tuner.fit()
