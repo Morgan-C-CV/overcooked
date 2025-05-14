@@ -13,7 +13,7 @@ import os
 
 def define_env():
     reward_config = {
-        "metatask failed": -1,
+        "metatask failed": -5,
         "goodtask finished": 15,
         "subtask finished": 25,
         "correct delivery": 200,
