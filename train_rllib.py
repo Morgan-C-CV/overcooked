@@ -31,10 +31,13 @@ def define_env():
         "lettuce-onion-tomato salad"
     ]
     
-    def env_creator(_):
+    def env_creator(env_context):
+        worker_index = env_context.worker_index if hasattr(env_context, 'worker_index') else 0
+        task_index = worker_index % len(tasks)
+        
         env_params = {
             "grid_dim": [5, 5],
-            "task": tasks[0],
+            "task": tasks[task_index],
             "rewardList": reward_config,
             "map_type": "A",
             "mode": "vector",
@@ -119,7 +122,7 @@ def define_training(human_policy, policies_to_train):
 def train(args, config):
     ray.init(num_gpus=1)
     current_dir = os.getcwd()
-    storage_path = os.path.join(current_dir, args.save_dir) # save the results in the runs folder
+    storage_path = os.path.join(current_dir, args.save_dir)
     experiment_name = f"{args.name}_{args.rl_module}_{int(time.time() * 1000)}"
     tuner = tune.Tuner(
         "PPO",
@@ -127,7 +130,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 600},
+            stop={"training_iteration": 1500},
             checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2),
         )
     )

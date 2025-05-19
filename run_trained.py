@@ -19,7 +19,7 @@ from ray.rllib.utils.numpy import convert_to_numpy, softmax
 import numpy as np
 
 reward_config = {
-    "metatask failed": -1,
+    "metatask failed": -5,
     "goodtask finished": 12,
     "subtask finished": 25,
     "correct delivery": 200,
