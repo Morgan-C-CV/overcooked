@@ -27,7 +27,7 @@ class Food(MovableItem):
         super().__init__(pos_x, pos_y)
         self.chopped = chopped
         self.cur_chopped_times = 0
-        self.required_chopped_times = 3        
+        self.required_chopped_times = 1
     
     def chop(self):
         if not self.chopped:

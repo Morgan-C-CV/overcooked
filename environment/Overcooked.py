@@ -10,7 +10,9 @@ DIRECTION = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 ITEMNAME = ["space", "counter", "agent", "tomato", "lettuce", "plate", "knife", "delivery", "onion"]
 ITEMIDX = {"space": 0, "counter": 1, "agent": 2, "tomato": 3, "lettuce": 4, "plate": 5, "knife": 6, "delivery": 7, "onion": 8}
 AGENTCOLOR = ["blue", "robot", "green", "yellow"]
-TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
+# TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
+TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
+# TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
 
 
 class Overcooked_multi(MultiAgentEnv):
@@ -869,7 +871,10 @@ class Overcooked_multi(MultiAgentEnv):
                                         if foodInPlate[i] > -1:
                                             dishName += agent.holding.containing[foodInPlate[i]].rawName + "-"
                                     dishName = dishName[:-1] + " salad"
-                                    if dishName in self.task:
+
+                                    current_task = self.task
+
+                                    if dishName == current_task:
                                         item = agent.holding
                                         agent.putdown(target_x, target_y)
                                         food = item.containing
@@ -879,16 +884,12 @@ class Overcooked_multi(MultiAgentEnv):
                                         for f in food:
                                             f.refresh()
                                             self.map[f.x][f.y] = ITEMIDX[f.rawName]
-                                        index = TASKLIST.index(dishName)
-                                        if self.taskCompletionStatus[index] > 0:
-                                            self.taskCompletionStatus[index] -= 1
-                                            self.reward += self.rewardList["correct delivery"]
-                                        else:
-                                            self.reward += self.rewardList["wrong delivery"]
+
+                                        self.reward += self.rewardList["correct delivery"]
                                         if all(value == 0 for value in self.taskCompletionStatus):
-                                            self.reward += self.rewardList["correct delivery"]
                                             done = True
                                     else:
+
                                         self.reward += self.rewardList["wrong delivery"]
                                         item = agent.holding
                                         agent.putdown(target_x, target_y)

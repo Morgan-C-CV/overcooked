@@ -6,11 +6,9 @@ from environment.Overcooked import Overcooked_multi
 from Agents import *
 import pandas as pd
 
-TASKLIST = [
-    "tomato salad", "lettuce salad", "onion salad",
-    "lettuce-tomato salad", "onion-tomato salad",
-    "lettuce-onion salad", "lettuce-onion-tomato salad"
-]
+TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
+
+# TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
 
 class Player:
     ACTION_MAPPING = {
@@ -25,8 +23,9 @@ class Player:
         "subtask finished": 10,
         "correct delivery": 200,
         "goodtask finished": 10,
-        "wrong delivery": -5,
-        "step penalty": -0.1
+        "wrong delivery": -20,
+        "step penalty": -0.1,
+        "metatask failed": -10,
     }
 
     def __init__(self, env_id, grid_dim, task, map_type, n_agent, obs_radius, mode, debug, agent='human'):
@@ -72,22 +71,35 @@ class Player:
         self.env.render()
         data = [["obs", "action_human", "action_ai", "new_obs", "reward_human", "reward_ai", "done"]]
 
+        total_rewards = 0
+        episode_steps = 0
+        completed_tasks = 0
+        total_steps = 0
+        episodes = 0
+        
         while True:
-            obs=new_obs
+            obs = new_obs
             row = [obs['human']]
             self.step += 1
+            episode_steps += 1
+            total_steps += 1
+            
             input_human = input("Input Human: ").strip().split(" ")
-
 
             if input_human == ['p']:
                 self.save_data(data)
+                print("\n=== Current Statistics ===")
+                print(f"Episodes completed: {episodes}")
+                print(f"Total steps: {total_steps}")
+                print(f"Average steps per episode: {total_steps/(episodes+1):.2f}")
+                print(f"Total rewards: {total_rewards:.2f}")
+                print(f"Average reward per episode: {total_rewards/(episodes+1):.2f}")
+                print(f"Tasks completed: {completed_tasks}")
+                print("========================\n")
                 continue
-
 
             if self.agent == 'human':
                 input_ai = input("Input AI: ").strip().split(" ")
-
-
             else:
                 input_ai = self.agent._forward_inference({"obs": [obs['ai']]})['actions']
 
@@ -99,9 +111,10 @@ class Player:
             row.append(action['human'])
             row.append(action['ai'])
 
-
             new_obs, reward, done, _, _ = self.env.step(action)
 
+            total_rewards += reward['human']
+            
             row.append(new_obs['human'])
             row.append(reward['human'])
             row.append(reward['ai'])
@@ -112,7 +125,28 @@ class Player:
             self.env.render()
 
             if done['__all__']:
+                episodes += 1
+                if all(status == 0 for status in self.env.taskCompletionStatus):
+                    completed_tasks += 1
+
+                print("\n=== Episode {} Complete ===".format(episodes))
+                print(f"Episode steps: {episode_steps}")
+                print(f"Episode reward: {reward['human']:.2f}")
+                print(f"Task completed: {'Yes' if all(status == 0 for status in self.env.taskCompletionStatus) else 'No'}")
+                print("========================\n")
+
+                episode_steps = 0
+
                 self.save_data(data)
+                print("\n=== Final Statistics ===")
+                print(f"Total episodes: {episodes}")
+                print(f"Total steps: {total_steps}")
+                print(f"Average steps per episode: {total_steps/episodes:.2f}")
+                print(f"Total rewards: {total_rewards:.2f}")
+                print(f"Average reward per episode: {total_rewards/episodes:.2f}")
+                print(f"Tasks completed: {completed_tasks}")
+                print(f"Task completion rate: {(completed_tasks/episodes)*100:.2f}%")
+                print("======================\n")
                 break
 
     def save_data(self, data):
@@ -121,6 +155,12 @@ class Player:
         df = pd.DataFrame(data, columns=columns)
         csv_filename = "output.csv"
         df.to_csv(csv_filename, index=False)
+
+        with open(csv_filename, 'a') as f:
+            f.write("\n=== Statistics ===\n")
+            f.write(f"Total steps: {self.step}\n")
+            f.write(f"Total rewards: {self.rewards:.2f}\n")
+            f.write(f"Average reward per step: {self.rewards/self.step:.2f}\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

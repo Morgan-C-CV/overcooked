@@ -20,20 +20,25 @@ import numpy as np
 
 reward_config = {
     "metatask failed": -5,
-    "goodtask finished": 12,
+    "goodtask finished": 15,
     "subtask finished": 25,
     "correct delivery": 200,
-    "wrong delivery": -50,
-    "step penalty": -0.5,
+    "wrong delivery": -100,
+    "step penalty": -1.0,
 }
+
+tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
+
 env_params = {
-    "grid_dim": [5, 5],
-    "task": "tomato salad",
-    "rewardList": reward_config,
-    "map_type": "A",
-    "mode": "vector",
-    "debug": False,
-}
+            "grid_dim": [5, 5],
+            "task": tasks[1],
+            "rewardList": reward_config,
+            "map_type": "A",
+            "mode": "vector",
+            "debug": False,
+            "possible_tasks": tasks,
+            "max_steps": 400,
+        }
 
 env = Overcooked_multi(**env_params)
 
@@ -82,6 +87,16 @@ def main(args):
     ai_module, human_module = load_modules(args)
     env.game.on_init()
     obs, info = env.reset()
+    
+    # Print observation space info
+    print("Observation space dimensions:")
+    print("AI observation shape:", obs['ai'].shape)
+    print("Human observation shape:", obs['human'].shape)
+    print("Model input dimension expected:", 30)  # Based on error message
+    
+    # Print task info
+    print("Current task:", env_params["task"])
+    print("Available tasks:", env_params["possible_tasks"])
     env.render()
 
     while True:

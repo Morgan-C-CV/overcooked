@@ -7,22 +7,29 @@ from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
 from ray.rllib.core.rl_module.rl_module import RLModuleSpec
 from ray import tune
 from ray.rllib.algorithms.ppo import PPOConfig
-from Agents import AlwaysStationaryRLM, RandomRLM
+from Agents import AlwaysStationaryRLM, RandomRLM, HybridRLM
 import os
 
 
 def define_env():
     reward_config = {
         "metatask failed": -5,
-        "goodtask finished": 20,
-        "subtask finished": 30,
-        "correct delivery": 300,
-        "wrong delivery": -100,
-        "step penalty": -0.5,
+        "goodtask finished": 15,
+        "subtask finished": 25,
+        "correct delivery": 200,
+        "wrong delivery": -50,
+        "step penalty": -1.0,
     }
 
-    tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
-
+    tasks = [
+        "tomato salad", 
+        "lettuce salad", 
+        "onion salad",
+        "lettuce-tomato salad",
+        "onion-tomato salad",
+        "lettuce-onion salad",
+        "lettuce-onion-tomato salad"
+    ]
     
     def env_creator(env_context):
         worker_index = env_context.worker_index if hasattr(env_context, 'worker_index') else 0
@@ -36,7 +43,7 @@ def define_env():
             "mode": "vector",
             "debug": False,
             "possible_tasks": tasks,
-            "max_steps": 800,
+            "max_steps": 400,
         }
         return Overcooked_multi(**env_params)
 
@@ -61,6 +68,27 @@ def define_agents(args):
     elif args.rl_module == 'learned':
         human_policy = RLModuleSpec()
         policies_to_train = ['ai', 'human']
+    elif args.rl_module == 'hybrid':
+        from ray.rllib.core.rl_module.rl_module import RLModule
+        import glob
+        import os
+
+        storage_path = os.path.join(os.getcwd(), args.save_dir)
+        p = f"{storage_path}/{args.name}_learned_*"
+        experiment_name = glob.glob(p)[-1]
+        
+        base_module = RLModule.from_checkpoint(os.path.join(
+            experiment_name,
+            'PPO_Overcooked_*',
+            'checkpoint_*',
+            'learner_group',
+            'learner',
+            'rl_module',
+            'human'
+        ))
+        
+        human_policy = RLModuleSpec(module_class=HybridRLM, module_kwargs={'base_module': base_module, 'lambda_param': args.lambda_param})
+        policies_to_train = ['ai']
     else:
         raise NotImplementedError(f"{args.rl_module} not a valid human agent")
     return human_policy, policies_to_train
@@ -88,7 +116,6 @@ def define_training(human_policy, policies_to_train):
 
         )
         .rl_module( # define what kind of policy each agent is
-
             rl_module_spec=MultiRLModuleSpec(
                 rl_module_specs={
                     "human": human_policy,
@@ -98,15 +125,15 @@ def define_training(human_policy, policies_to_train):
         )
         .training(
             lr=5e-4,
-            lambda_=0.95,
+            lambda_=0.98,
             gamma=0.99,
-            clip_param=0.2,
-            entropy_coeff=0.3,
-            vf_loss_coeff=0.5,
-            grad_clip=0.5,
-            num_epochs=8,
-            minibatch_size=256,
-            train_batch_size=5000,
+            clip_param=0.05,
+            entropy_coeff=0.1,
+            vf_loss_coeff=0.1,
+            grad_clip=0.1,
+            num_epochs=10,
+            minibatch_size=128,
+            train_batch_size=3000,
         )
         .framework("torch")
     )
@@ -125,7 +152,7 @@ def train(args, config):
             storage_path=storage_path,
             name=experiment_name,
             stop={"training_iteration": 1500},
-            checkpoint_config=CheckpointConfig(checkpoint_frequency=20, checkpoint_at_end=True, num_to_keep=2),
+            checkpoint_config=CheckpointConfig(checkpoint_frequency=10, checkpoint_at_end=True, num_to_keep=2),
         )
     )
     tuner.fit()
@@ -142,6 +169,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_dir", default="runs", type=str)
     parser.add_argument("--name", default="run", type=str)
-    parser.add_argument("--rl_module", default="stationary", help = "Set the policy of the human, can be stationary, random, or learned")
+    parser.add_argument("--rl_module", default="stationary", help = "Set the policy of the human, can be stationary, random, learned, or hybrid")
+    parser.add_argument("--lambda_param", type=float, default=0.8, help="Probability of using trained model vs random actions in hybrid mode")
+
     args = parser.parse_args()
     ip = main(args)
