@@ -19,8 +19,36 @@ from ray.rllib.core import (
 from ray.rllib.utils.numpy import convert_to_numpy, softmax
 from ray.rllib.core.columns import Columns
 
+def get_model_path(threshold):
+    """根据threshold选择最合适的模型"""
+    base_dir = "c:/Users/16146/PycharmProjects/overcooked/runs"
+    model_dirs = glob.glob(os.path.join(base_dir, "collaborative_training_threshold_*"))
+    
+    if not model_dirs:
+        raise ValueError("No collaborative training models found")
+
+    closest_dir = None
+    min_diff = float('inf')
+    
+    for dir_path in model_dirs:
+        try:
+            dir_threshold = float(dir_path.split("threshold_")[-1].split("_")[0])
+            diff = abs(dir_threshold - threshold)
+            
+            if diff < min_diff:
+                min_diff = diff
+                closest_dir = dir_path
+        except:
+            continue
+    
+    if closest_dir is None:
+        raise ValueError(f"Could not find suitable model for threshold {threshold}")
+        
+    print(f"Selected model with threshold {closest_dir.split('threshold_')[-1].split('_')[0]} for requested threshold {threshold}")
+    return closest_dir
+
 class HumanGameplay:
-    def __init__(self, ai_model_path, threshold=0.4):
+    def __init__(self, threshold=0.4):
         self.action_mapping = {
             'w': 3,  # up
             'a': 2,  # left
@@ -28,8 +56,7 @@ class HumanGameplay:
             'd': 0,  # right
             'p': 4   # stay/interact
         }
-        
-        # 游戏环境设置
+
         self.reward_config = {
             "metatask failed": -10,
             "goodtask finished": 20,
@@ -42,7 +69,7 @@ class HumanGameplay:
         self.tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad"]
         self.env_params = {
             "grid_dim": [5, 5],
-            "task": self.tasks[2],  # lettuce-onion salad
+            "task": self.tasks[2],
             "rewardList": self.reward_config,
             "map_type": "A",
             "mode": "vector",
@@ -53,7 +80,8 @@ class HumanGameplay:
         
         self.env = Overcooked_multi(**self.env_params)
         self.threshold = threshold
-        self.ai_model = self.load_ai_model(ai_model_path)
+        model_path = get_model_path(threshold)
+        self.ai_model = self.load_ai_model(model_path)
 
         self.game_data = {
             'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
@@ -74,19 +102,35 @@ class HumanGameplay:
     def load_ai_model(self, model_path):
         print(f"Loading AI model from {model_path}...")
 
-        checkpoint_dir = os.path.join(model_path, "PPO_Overcooked_63bb5_00000_0_2025-05-29_05-48-24")
-        checkpoint_path = os.path.join(checkpoint_dir, "checkpoint_000149")
+        model_dirs = glob.glob(os.path.join(model_path, "PPO_Overcooked_*"))
+        if not model_dirs:
+            raise ValueError(f"No PPO_Overcooked directories found in {model_path}")
+            
+        # 选择最新的目录
+        latest_dir = max(model_dirs, key=os.path.getctime)
         
-        if not os.path.exists(checkpoint_path):
-            raise ValueError(f"Checkpoint not found at {checkpoint_path}")
-
-        return RLModule.from_checkpoint(os.path.join(
-            checkpoint_path,
+        # 查找最新的checkpoint
+        checkpoint_dirs = glob.glob(os.path.join(latest_dir, "checkpoint_*"))
+        if not checkpoint_dirs:
+            raise ValueError(f"No checkpoints found in {latest_dir}")
+            
+        # 选择编号最大的checkpoint
+        latest_checkpoint = max(checkpoint_dirs, key=lambda x: int(x.split("_")[-1]))
+        
+        # 构建完整的模型路径
+        checkpoint_path = os.path.join(
+            latest_checkpoint,
             COMPONENT_LEARNER_GROUP,
             COMPONENT_LEARNER,
             COMPONENT_RL_MODULE,
             'ai',
-        ))
+        )
+        
+        if not os.path.exists(checkpoint_path):
+            raise ValueError(f"Checkpoint not found at {checkpoint_path}")
+            
+        print(f"Using checkpoint: {latest_checkpoint}")
+        return RLModule.from_checkpoint(checkpoint_path)
 
     def sample_ai_action(self, obs):
         mdl_out = self.ai_model.forward_inference({Columns.OBS: obs})
@@ -148,7 +192,6 @@ class HumanGameplay:
         last_step_time = start_time
         
         print("\n========== Game Started ============")
-        print(f"Task: {self.env_params['task']}\n\n")
         print("Controls: WASD to move, P to interact")
         print("Press Ctrl+C to end the game")
         
@@ -219,12 +262,7 @@ class HumanGameplay:
               f"AI: {self.game_data['cumulative_rewards']['ai']:.1f}")
 
 def main():
-    model_path = "c:/Users/16146/PycharmProjects/overcooked/runs/collaborative_training_threshold_0.4_1748486904234"
-    
-    if not os.path.exists(model_path):
-        raise ValueError(f"Model path not found: {model_path}")
-
-    game = HumanGameplay(model_path, threshold=0.4)
+    game = HumanGameplay(threshold=0.4)
     game.run_game()
 
 if __name__ == "__main__":
