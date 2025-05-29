@@ -44,7 +44,7 @@ def get_model_path(threshold):
     if closest_dir is None:
         raise ValueError(f"Could not find suitable model for threshold {threshold}")
         
-    print(f"Selected model with threshold {closest_dir.split('threshold_')[-1].split('_')[0]} for requested threshold {threshold}")
+    # print(f"Selected model with threshold {closest_dir.split('threshold_')[-1].split('_')[0]} for requested threshold {threshold}")
     return closest_dir
 
 class HumanGameplay:

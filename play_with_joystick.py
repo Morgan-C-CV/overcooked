@@ -29,16 +29,16 @@ class JoystickAIGameplay(HumanGameplay):
         if abs(x_axis) > 0.5 or abs(y_axis) > 0.5:
             if abs(x_axis) > abs(y_axis):
                 if x_axis > 0:
-                    self.current_ai_action = 0  # 右
+                    self.current_ai_action = 0
                 else:
-                    self.current_ai_action = 2  # 左
+                    self.current_ai_action = 2
             else:
                 if y_axis > 0:
-                    self.current_ai_action = 1  # 下
+                    self.current_ai_action = 1
                 else:
-                    self.current_ai_action = 3  # 上
+                    self.current_ai_action = 3
         elif button:
-            self.current_ai_action = 4  # 交互
+            self.current_ai_action = 4
             
         return self.current_ai_action
 
@@ -46,33 +46,27 @@ class JoystickAIGameplay(HumanGameplay):
         pygame.quit()
 
 def wait_for_space():
-    """等待空格键按下"""
-    print("\n按空格键继续...")
+    print("\n\n\n\n\n\n\nPress space to continue...\n\n\n\n\n\n")
     while True:
         if keyboard.is_pressed('space'):
-            # 等待空格键释放
             while keyboard.is_pressed('space'):
                 time.sleep(0.1)
             break
         time.sleep(0.1)
 
 def run_game_session(threshold):
-    """运行一次游戏会话"""
     try:
         if threshold == 0:
-            print("\nAI agent由摇杆控制，human agent由键盘控制")
             game = JoystickAIGameplay()
         else:
-            print(f"\nAI agent使用threshold={threshold}的模型，human agent由键盘控制")
             game = HumanGameplay(threshold=threshold)
             
         game.run_game()
         
     except KeyboardInterrupt:
-        print("\n游戏被中断")
         return False
     except Exception as e:
-        print(f"\n发生错误: {str(e)}")
+        print(f"\nError: {str(e)}")
         return False
     finally:
         if threshold == 0 and 'game' in locals():
@@ -80,26 +74,20 @@ def run_game_session(threshold):
     return True
 
 def main():
-    # 初始threshold列表
     thresholds = [0.2, 0.4, 0.6, 0.8, 0]
-    # 随机打乱顺序
     random.shuffle(thresholds)
-    
-    print("\n=== 游戏将进行5轮，每轮使用不同的threshold值 ===")
-    print("当前threshold序列:", thresholds)
+
     
     for i, threshold in enumerate(thresholds, 1):
-        print(f"\n\n=== 第{i}/5轮游戏 ===")
-        print(f"使用threshold值: {threshold}")
+        print(f"\n\n===== Game {i}/5 =====")
         
         if not run_game_session(threshold):
             break
-            
-        # 如果不是最后一轮，等待空格继续
+
         if i < len(thresholds):
             wait_for_space()
     
-    print("\n=== 所有游戏结束 ===")
+    print("\n=== All Trial Ended ===")
 
 if __name__ == "__main__":
     main() 
