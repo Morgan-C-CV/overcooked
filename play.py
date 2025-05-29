@@ -6,9 +6,9 @@ from environment.Overcooked import Overcooked_multi
 from Agents import *
 import pandas as pd
 
-TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
+# TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
 
-# TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
+TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
 
 class Player:
     ACTION_MAPPING = {
@@ -23,7 +23,7 @@ class Player:
         "subtask finished": 10,
         "correct delivery": 200,
         "goodtask finished": 10,
-        "wrong delivery": -20,
+        "wrong delivery": -100,
         "step penalty": -0.1,
         "metatask failed": -10,
     }
@@ -31,7 +31,7 @@ class Player:
     def __init__(self, env_id, grid_dim, task, map_type, n_agent, obs_radius, mode, debug, agent='human'):
         self.env_params = {
             'grid_dim': grid_dim,
-            'task': TASKLIST[task],
+            'task': TASKLIST[2],
             'rewardList': self.REWARD_LIST,
             'map_type': map_type,
             'mode': mode,
@@ -165,7 +165,7 @@ class Player:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--grid_dim', type=int, nargs=5, default=[5, 5], help='Grid world size')
-    parser.add_argument('--task', type=int, default=6, help='The recipe agent cooks')
+    parser.add_argument('--task', type=int, default=1, help='The recipe agent cooks')
     parser.add_argument('--map_type', type=str, default="A", help='The type of map')
     parser.add_argument('--mode', type=str, default="vector", help='The type of observation (vector/image)')
     parser.add_argument('--debug', type=bool, default=True, help='Whether to print debug information and render')

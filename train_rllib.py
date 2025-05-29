@@ -13,15 +13,15 @@ import os
 
 def define_env():
     reward_config = {
-        "metatask failed": -5,
+        "metatask failed": -10,
         "goodtask finished": 20,
         "subtask finished": 30,
-        "correct delivery": 300,
+        "correct delivery": 200,
         "wrong delivery": -100,
         "step penalty": -0.5,
     }
 
-    tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
+    tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad"]
 
     
     def env_creator(env_context):
@@ -35,8 +35,8 @@ def define_env():
             "map_type": "A",
             "mode": "vector",
             "debug": False,
-            "possible_tasks": tasks,
-            "max_steps": 800,
+            "possible_tasks": None,
+            "max_steps": 400,
         }
         return Overcooked_multi(**env_params)
 
@@ -124,7 +124,7 @@ def train(args, config):
         run_config=RunConfig(
             storage_path=storage_path,
             name=experiment_name,
-            stop={"training_iteration": 1500},
+            stop={"training_iteration": 1200},
             checkpoint_config=CheckpointConfig(checkpoint_frequency=20, checkpoint_at_end=True, num_to_keep=2),
         )
     )

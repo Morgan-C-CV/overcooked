@@ -11,7 +11,7 @@ ITEMNAME = ["space", "counter", "agent", "tomato", "lettuce", "plate", "knife", 
 ITEMIDX = {"space": 0, "counter": 1, "agent": 2, "tomato": 3, "lettuce": 4, "plate": 5, "knife": 6, "delivery": 7, "onion": 8}
 AGENTCOLOR = ["blue", "robot", "green", "yellow"]
 # TASKLIST = ["tomato salad", "lettuce salad", "onion salad", "lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
-TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion-tomato salad"]
+TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad"]
 # TASKLIST = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad", "lettuce-onion-tomato salad"]
 
 
@@ -293,6 +293,16 @@ class Overcooked_multi(MultiAgentEnv):
                         [1, 1, 1, 1, 1, 1, 1, 5, 1]]
         return map
 
+    def _is_vegetable_in_menu(self, vegetable_name):
+        """检查蔬菜是否在当前任务菜单中"""
+        if isinstance(self.task, str):
+            # 单个任务的情况
+            return vegetable_name in self.task
+        elif isinstance(self.task, list):
+            # 多个任务的情况
+            return any(vegetable_name in task for task in self.task)
+        return False
+
     def _createItems(self):
         """
         Initialize the items in the environment based on the map configuration.
@@ -334,7 +344,7 @@ class Overcooked_multi(MultiAgentEnv):
 
         self.itemList = [item for sublist in self.itemDic.values() for item in sublist]
         self.agent = self.itemDic["agent"]
-        
+
 
         self.knife = self.itemDic["knife"]
         self.tomato = self.itemDic["tomato"]
@@ -383,7 +393,7 @@ class Overcooked_multi(MultiAgentEnv):
             x = item.x / self.xlen
             y = item.y / self.ylen
             state.extend([x, y])
-            
+
             if isinstance(item, Food):
                 state.append(item.cur_chopped_times / item.required_chopped_times)
             elif isinstance(item, Plate):
@@ -400,11 +410,11 @@ class Overcooked_multi(MultiAgentEnv):
         """
         Retrieve the current image state for each agent.
 
-        This method returns a list containing the current image observation 
+        This method returns a list containing the current image observation
         of the game state, repeated for each agent in the environment.
 
         Returns:
-            list: A list where each element is the current image observation 
+            list: A list where each element is the current image observation
               of the game state, repeated for the number of agents.
         """
         return [self.game.get_image_obs()] * self.n_agent
@@ -532,7 +542,7 @@ class Overcooked_multi(MultiAgentEnv):
                                   [1, 0, 0, 0, 0, 0, 0, 0, 1],
                                   [1, 1, 1, 1, 1, 1, 1, 1, 1]]
                 elif self.mapType == "B":
-                    
+
                     agent.pomap= [[1, 1, 1, 1, 0, 1, 1, 1, 1],
                                   [1, 0, 0, 1, 0, 1, 0, 0, 1],
                                   [1, 0, 0, 1, 0, 1, 0, 0, 1],
@@ -652,7 +662,7 @@ class Overcooked_multi(MultiAgentEnv):
 
     def action_space_sample(self, i):
         return np.random.randint(self.action_spaces[i].n)
-    
+
     def reset(self, *, seed=None, options=None):
         """
         Returns
@@ -660,24 +670,26 @@ class Overcooked_multi(MultiAgentEnv):
         obs : list
             observation for each agent.
         """
-    
+
         import random
-    
+
         self.map = copy.deepcopy(self.initMap)
         self._createItems()
         self.step_count = 0
 
-        if self.possible_tasks:
+        if isinstance(self.task, list):
+            self.task = random.choice(self.task)
+        elif self.possible_tasks:
             self.task = random.choice(self.possible_tasks)
-            print(f"\nTask now: {self.task}")
-            self.oneHotTask = [1 if t in self.task else 0 for t in TASKLIST]
-            counter = Counter(self.task)
-            self.taskCompletionStatus = [counter[element] if element in counter else 0 for element in TASKLIST]
-    
+        print(f"\nTask now: {self.task}")
+        self.oneHotTask = [1 if t in self.task else 0 for t in TASKLIST]
+        counter = Counter(self.task)
+        self.taskCompletionStatus = [counter[element] if element in counter else 0 for element in TASKLIST]
+
         self._initObs()
-    
+
         return self._get_obs(), {}
-    
+
     def step(self, action):
 
         """
@@ -751,7 +763,7 @@ class Overcooked_multi(MultiAgentEnv):
                         agent.move(target_x, target_y)
                         self.map[target_x][target_y] = ITEMIDX["agent"]
 
-                    # pickup and chop 
+                    # pickup and chop
                     # If the agent doesn't have anything in hand
                     elif not agent.holding:
                         # If the target is a movable item, pick it up
@@ -777,13 +789,23 @@ class Overcooked_multi(MultiAgentEnv):
                                 # If the food is not chopped, chop it once
                                 else:
                                     knife.holding.chop()
-                                    self.reward += self.rewardList["goodtask finished"]
-                                    # If the food is chopped after chopping, check if it is part of the current task
-                                    if knife.holding.chopped:
-                                        for task in self.task:
-                                            if knife.holding.rawName in task:
-                                                # Reward for completing a mini task
-                                                self.reward += self.rewardList["minitask finished"]
+                                    # Check if the vegetable is in the current menu before giving goodtask reward
+                                    if self._is_vegetable_in_menu(knife.holding.rawName):
+                                        # Check if the vegetable is in the current menu before giving goodtask reward
+                                        if self._is_vegetable_in_menu(knife.holding.rawName):
+                                            self.reward += self.rewardList["goodtask finished"]
+                                        else:
+                                            # Penalty for placing food not in menu on knife
+                                            self.reward += self.rewardList["metatask failed"]
+                                        # If the food is chopped after chopping, check if it is part of the current task
+                                        if knife.holding.chopped:
+                                            for task in self.task:
+                                                if knife.holding.rawName in task:
+                                                    # Reward for completing a mini task
+                                                    self.reward += self.rewardList["minitask finished"]
+                                    else:
+                                        # Penalty for chopping food not in menu
+                                        self.reward += self.rewardList["metatask failed"]
                     # put down
                     # If the agent is currently holding something
                     elif agent.holding:
@@ -800,8 +822,13 @@ class Overcooked_multi(MultiAgentEnv):
                             # If the agent is holding food, check if it is chopped
                             if isinstance(agent.holding, Food):
                                 if agent.holding.chopped:
-                                    # Reward for placing chopped food on a plate
-                                    self.reward += self.rewardList["subtask finished"]
+                                    # Check if the vegetable is in the current menu
+                                    if self._is_vegetable_in_menu(agent.holding.rawName):
+                                        # Reward for placing chopped food on a plate
+                                        self.reward += self.rewardList["subtask finished"]
+                                    else:
+                                        # Penalty for placing food not in menu
+                                        self.reward += self.rewardList["metatask failed"]
                                     plate = self._findItem(target_x, target_y, target_name)
                                     item = agent.holding
                                     # Put down the item and reset the agent
@@ -824,14 +851,24 @@ class Overcooked_multi(MultiAgentEnv):
                                         self.reward += self.rewardList["metatask failed"]
                                     else:
                                         # Reward for placing unchopped food on the knife
-                                        self.reward += self.rewardList["goodtask finished"]
+                                        # Check if the vegetable is in the current menu before giving goodtask reward
+                                        if self._is_vegetable_in_menu(item.rawName):
+                                            self.reward += self.rewardList["goodtask finished"]
+                                        else:
+                                            # Penalty for placing food not in menu on knife
+                                            self.reward += self.rewardList["metatask failed"]
                                 else:
                                     self.reward += self.rewardList["metatask failed"]
                             # If the knife is holding food and the agent is holding a plate, place the food on the plate
                             elif isinstance(knife.holding, Food) and isinstance(agent.holding, Plate):
                                 item = knife.holding
                                 if item.chopped:
-                                    self.reward += self.rewardList["subtask finished"]
+                                    # Check if the vegetable is in the current menu
+                                    if self._is_vegetable_in_menu(item.rawName):
+                                        self.reward += self.rewardList["subtask finished"]
+                                    else:
+                                        # Penalty for placing food not in menu
+                                        self.reward += self.rewardList["metatask failed"]
                                     knife.release()
                                     agent.holding.contain(item)
                                 else:
@@ -845,7 +882,12 @@ class Overcooked_multi(MultiAgentEnv):
                                 plate_item = knife.holding
                                 food_item = agent.holding
                                 if food_item.chopped:
-                                    self.reward += self.rewardList["subtask finished"]
+                                    # Check if the vegetable is in the current menu
+                                    if self._is_vegetable_in_menu(food_item.rawName):
+                                        self.reward += self.rewardList["subtask finished"]
+                                    else:
+                                        # Penalty for placing food not in menu
+                                        self.reward += self.rewardList["metatask failed"]
                                     knife.release()
                                     agent.pickup(plate_item)
                                     agent.holding.contain(food_item)
@@ -916,7 +958,12 @@ class Overcooked_multi(MultiAgentEnv):
                         elif target_name in ["tomato", "lettuce", "onion"]:
                             item = self._findItem(target_x, target_y, target_name)
                             if item.chopped and isinstance(agent.holding, Plate):
-                                self.reward += self.rewardList["subtask finished"]
+                                # Check if the vegetable is in the current menu
+                                if self._is_vegetable_in_menu(item.rawName):
+                                    self.reward += self.rewardList["subtask finished"]
+                                else:
+                                    # Penalty for placing food not in menu
+                                    self.reward += self.rewardList["metatask failed"]
                                 agent.holding.contain(item)
                                 self.map[target_x][target_y] = ITEMIDX["counter"]
                             elif not item.chopped and isinstance(agent.holding, Plate):
@@ -932,7 +979,7 @@ class Overcooked_multi(MultiAgentEnv):
                 if not agent.moved:
                     all_action_done = False
 
-        terminateds = {"__all__": done or self.step_count >= 80}
+        terminateds = {"__all__": done or self.step_count >= self.max_steps}
         rewards = {agent: self.reward for agent in self.agents}
         infos = {agent: info for agent in self.agents}
 
@@ -944,8 +991,3 @@ class Overcooked_multi(MultiAgentEnv):
         return self.game.on_render()
 
     
-
-
-
-
-

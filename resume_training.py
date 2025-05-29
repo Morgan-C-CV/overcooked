@@ -12,23 +12,15 @@ import os
 
 def define_env():
     reward_config = {
-        "metatask failed": -5,
-        "goodtask finished": 15,
-        "subtask finished": 25,
+        "metatask failed": -10,
+        "goodtask finished": 20,
+        "subtask finished": 30,
         "correct delivery": 200,
-        "wrong delivery": -50,
-        "step penalty": -1.0,
+        "wrong delivery": -100,
+        "step penalty": -0.5,
     }
 
-    tasks = [
-        "tomato salad", 
-        "lettuce salad", 
-        "onion salad",
-        "lettuce-tomato salad",
-        "onion-tomato salad",
-        "lettuce-onion salad",
-        "lettuce-onion-tomato salad"
-    ]
+    tasks = ["lettuce-tomato salad", "onion-tomato salad", "lettuce-onion salad"]
     
     def env_creator(env_context):
         worker_index = env_context.worker_index if hasattr(env_context, 'worker_index') else 0
@@ -41,7 +33,7 @@ def define_env():
             "map_type": "A",
             "mode": "vector",
             "debug": False,
-            "possible_tasks": tasks,
+            "possible_tasks": None,  # Set to None to prevent random task selection
             "max_steps": 400,
         }
         return Overcooked_multi(**env_params)
@@ -57,6 +49,18 @@ def define_agents():
     return human_policy, policies_to_train
 
 def define_training(human_policy, policies_to_train):
+    # 计算entropy coefficient的衰减
+    def entropy_schedule(train_iter):
+        # 从0.3开始，在1500轮内线性衰减到0.1
+        start_entropy = 0.3
+        end_entropy = 0.1
+        decay_steps = 1500
+        current_entropy = max(
+            end_entropy,
+            start_entropy - (start_entropy - end_entropy) * (train_iter / decay_steps)
+        )
+        return current_entropy
+
     config = (
         PPOConfig()
         .api_stack(
@@ -65,7 +69,7 @@ def define_training(human_policy, policies_to_train):
         )
         .environment("Overcooked")
         .env_runners(
-            num_envs_per_env_runner=1,
+            num_envs_per_env_runner=2,  # 增加环境数量以提高探索
             num_cpus_per_env_runner=1,
             num_gpus_per_env_runner=0.5
         )
@@ -83,22 +87,27 @@ def define_training(human_policy, policies_to_train):
             ),
         )
         .training(
-            lr=1e-4,
+            lr=3e-4,  # 增加学习率
             lambda_=0.95,
             gamma=0.99,
             clip_param=0.2,
-            entropy_coeff=0.2,
-            vf_loss_coeff=0.5,
-            grad_clip=0.5,
-            num_epochs=8,
+            entropy_coeff=0.3,  # 增加初始熵以促进探索
+            entropy_coeff_schedule=entropy_schedule,  # 添加熵系数衰减
+            vf_loss_coeff=1.0,  # 增加价值函数损失权重
+            grad_clip=1.0,  # 增加梯度裁剪范围
+            num_epochs=10,  # 增加每批次训练轮数
             minibatch_size=256,
-            train_batch_size=4000,
+            train_batch_size=8000,  # 增加批次大小以提高稳定性
+            # 添加KL散度目标以防止策略剧烈变化
+            kl_coeff=0.2,
+            kl_target=0.01,
         )
         .framework("torch")
+        .rollouts(num_rollout_workers=2)  # 增加rollout workers数量
     )
     return config
 
-def resume_training(checkpoint_path, additional_iterations=1000):
+def resume_training(checkpoint_path, additional_iterations=1500):  # 增加训练轮数
     ray.init(num_gpus=1)
 
     define_env()
@@ -109,9 +118,9 @@ def resume_training(checkpoint_path, additional_iterations=1000):
     
     current_dir = os.getcwd()
     storage_path = os.path.join(current_dir, "runs")
-    experiment_name = f"resume_training_{int(time.time() * 1000)}"
+    experiment_name = f"resume_training_{int(time.time() * 800)}"
 
-    checkpoint_epochs = [300, 400, 800, 1000]
+    checkpoint_epochs = [300, 600, 900, 1200, 1500]  # 更多的检查点
     
     config = config.to_dict()
     config["resume"] = True
@@ -120,7 +129,7 @@ def resume_training(checkpoint_path, additional_iterations=1000):
     config["keep_checkpoints_num"] = len(checkpoint_epochs) + 1
     
     checkpoint_config = CheckpointConfig(
-        checkpoint_frequency=None,
+        checkpoint_frequency=300,  # 每300轮保存一次
         checkpoint_at_end=True,
         num_to_keep=len(checkpoint_epochs) + 1, 
         checkpoint_score_attribute="episode_reward_mean",
@@ -132,13 +141,6 @@ def resume_training(checkpoint_path, additional_iterations=1000):
         name=experiment_name,
         stop={"training_iteration": additional_iterations},
         checkpoint_config=checkpoint_config,
-        callbacks=[
-            tune.callbacks.CheckpointCallback(
-                checkpoint_epochs,
-                checkpoint_score_attribute="episode_reward_mean",
-                checkpoint_score_order="max"
-            )
-        ]
     )
 
     tuner = tune.Tuner(
@@ -150,7 +152,7 @@ def resume_training(checkpoint_path, additional_iterations=1000):
     tuner.fit()
 
 if __name__ == "__main__":
-    base_dir = "c:\\Users\\16146\\PycharmProjects\\overcooked\\runs\\run_stationary_1747690505862\\PPO_Overcooked_21573_00000_0_2025-05-20_00-35-06"
-    checkpoint_path = os.path.join(base_dir, "checkpoint_000074")
-    iterations = 1000
+    base_dir = "c:\\Users\\16146\\PycharmProjects\\overcooked\\runs\\run_stationary_1748332915148\\PPO_Overcooked_db1e4_00000_0_2025-05-27_11-01-55"
+    checkpoint_path = os.path.join(base_dir, "checkpoint_000059")
+    iterations = 1500  # 增加训练轮数到1500
     resume_training(checkpoint_path, iterations)
