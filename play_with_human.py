@@ -112,14 +112,26 @@ class HumanGameplay:
 
     def save_game_data(self):
         os.makedirs('logs', exist_ok=True)
-
+        
         filename = f"logs/game_log_{self.game_data['timestamp']}.json"
-
+        
         data_to_save = self.game_data.copy()
         for agent in ['human', 'ai']:
+            # 转换轨迹数据
             data_to_save['trajectories'][agent] = [pos.tolist() if isinstance(pos, np.ndarray) else pos 
-                                                 for pos in self.game_data['trajectories'][agent]]
-
+                                               for pos in self.game_data['trajectories'][agent]]
+            # 转换动作数据
+            data_to_save['actions'][agent] = [int(action) if isinstance(action, np.integer) else action 
+                                          for action in self.game_data['actions'][agent]]
+            # 转换奖励数据
+            data_to_save['rewards'][agent] = [float(reward) if isinstance(reward, np.floating) else reward 
+                                          for reward in self.game_data['rewards'][agent]]
+            # 转换累积奖励
+            data_to_save['cumulative_rewards'][agent] = float(data_to_save['cumulative_rewards'][agent])
+        
+        # 转换总步数
+        data_to_save['total_steps'] = int(data_to_save['total_steps'])
+        
         with open(filename, 'w') as f:
             json.dump(data_to_save, f, indent=4)
         print(f"\nGame data saved to {filename}")
