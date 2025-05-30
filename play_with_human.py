@@ -20,7 +20,6 @@ from ray.rllib.utils.numpy import convert_to_numpy, softmax
 from ray.rllib.core.columns import Columns
 
 def get_model_path(threshold):
-    """根据threshold选择最合适的模型"""
     base_dir = "c:/Users/16146/PycharmProjects/overcooked/runs"
     model_dirs = glob.glob(os.path.join(base_dir, "collaborative_training_threshold_*"))
     
@@ -105,19 +104,14 @@ class HumanGameplay:
         model_dirs = glob.glob(os.path.join(model_path, "PPO_Overcooked_*"))
         if not model_dirs:
             raise ValueError(f"No PPO_Overcooked directories found in {model_path}")
-            
-        # 选择最新的目录
+
         latest_dir = max(model_dirs, key=os.path.getctime)
-        
-        # 查找最新的checkpoint
         checkpoint_dirs = glob.glob(os.path.join(latest_dir, "checkpoint_*"))
         if not checkpoint_dirs:
             raise ValueError(f"No checkpoints found in {latest_dir}")
-            
-        # 选择编号最大的checkpoint
+
         latest_checkpoint = max(checkpoint_dirs, key=lambda x: int(x.split("_")[-1]))
-        
-        # 构建完整的模型路径
+
         checkpoint_path = os.path.join(
             latest_checkpoint,
             COMPONENT_LEARNER_GROUP,
@@ -161,19 +155,14 @@ class HumanGameplay:
         
         data_to_save = self.game_data.copy()
         for agent in ['human', 'ai']:
-            # 转换轨迹数据
             data_to_save['trajectories'][agent] = [pos.tolist() if isinstance(pos, np.ndarray) else pos 
                                                for pos in self.game_data['trajectories'][agent]]
-            # 转换动作数据
             data_to_save['actions'][agent] = [int(action) if isinstance(action, np.integer) else action 
                                           for action in self.game_data['actions'][agent]]
-            # 转换奖励数据
             data_to_save['rewards'][agent] = [float(reward) if isinstance(reward, np.floating) else reward 
                                           for reward in self.game_data['rewards'][agent]]
-            # 转换累积奖励
             data_to_save['cumulative_rewards'][agent] = float(data_to_save['cumulative_rewards'][agent])
-        
-        # 转换总步数
+
         data_to_save['total_steps'] = int(data_to_save['total_steps'])
         
         with open(filename, 'w') as f:

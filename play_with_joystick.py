@@ -25,7 +25,11 @@ class JoystickAIGameplay(HumanGameplay):
         x_axis = self.joystick.get_axis(0)
         y_axis = self.joystick.get_axis(1)
         button = self.joystick.get_button(0)
-        
+
+        # 默认动作为4
+        self.current_ai_action = 4
+
+        # 检查当前输入
         if abs(x_axis) > 0.5 or abs(y_axis) > 0.5:
             if abs(x_axis) > abs(y_axis):
                 if x_axis > 0:
@@ -39,14 +43,14 @@ class JoystickAIGameplay(HumanGameplay):
                     self.current_ai_action = 3
         elif button:
             self.current_ai_action = 4
-            
+        
         return self.current_ai_action
 
     def cleanup(self):
         pygame.quit()
 
 def wait_for_space():
-    print("\n\n\n\n\n\n\nPress space to continue...\n\n\n\n\n\n")
+    print("\n\n\n\n\n\n\n\n\n\n\nPress space to continue...\n\n\n\n\n\n\n\n\n\n")
     while True:
         if keyboard.is_pressed('space'):
             while keyboard.is_pressed('space'):
